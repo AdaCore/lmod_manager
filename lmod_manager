@@ -35,7 +35,7 @@ def main(argv: Sequence[str]) -> Union[int, str]:
         "archive",
         metavar="ARCHIVE",
         type=Path,
-        help="path to archive (e.g., /opt/sparkpro)",
+        help="path to archive (e.g., spark-pro-22.1-x86_64-linux-bin.tar.gz)",
     )
     parser_install.add_argument(
         "-l",
