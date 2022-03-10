@@ -1,0 +1,9 @@
+*.pyc
+.coverage
+.hypothesis
+.mypy_cache
+\.*.swp
+__pycache__
+dist
+htmlcov
+venv

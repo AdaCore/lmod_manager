@@ -76,15 +76,11 @@ def install(args: argparse.Namespace) -> Union[int, str]:
 
     if "spark-pro" in args.archive.name:
         archive_type = Type.SPARK
-        archive_regex = (
-            r"spark-pro-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
-        )
+        archive_regex = r"spark-pro-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
         name = "sparkpro"
     elif "gnatpro" in args.archive.name:
         archive_type = Type.GNAT
-        archive_regex = (
-            r"gnatpro-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
-        )
+        archive_regex = r"gnatpro-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
         name = "gnatpro"
     else:
         return "unexpected archive type"
@@ -108,14 +104,10 @@ def install(args: argparse.Namespace) -> Union[int, str]:
 
     if archive_type is Type.SPARK:
         extracted_archive_dir = f"spark-pro-{version}-{target}-{linux}-bin"
-        installation_cmd = (
-            f"echo '{installation_dir}' | {extracted_archive_dir}/doinstall"
-        )
+        installation_cmd = f"echo '{installation_dir}' | {extracted_archive_dir}/doinstall"
     elif archive_type is Type.GNAT:
         extracted_archive_dir = f"gnatpro-{version}-{target}-{linux}-bin"
-        installation_cmd = (
-            f"cd {extracted_archive_dir} && ./doinstall {installation_dir}"
-        )
+        installation_cmd = f"cd {extracted_archive_dir} && ./doinstall {installation_dir}"
     else:
         assert_never(archive_type)
 
