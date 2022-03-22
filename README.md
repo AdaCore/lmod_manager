@@ -2,12 +2,18 @@
 
 This tool manages [Lmod](https://github.com/TACC/Lmod) modulefiles for various AdaCore software. The created modulefiles enable easy switching between different software versions. Lmod achieves that by dynamically changing the `PATH` environment variable.
 
+## Installation
+
+```console
+$ pip3 install git+https://github.com/AdaCore/lmod_manager.git
+```
+
 ## Usage
 
 A new software version can be installed using the `install` subcommand.
 
 ```console
-$ ./lmod_manager install spark-pro-22.1-x86_64-linux-bin.tar.gz
+$ lmod_manager install spark-pro-22.1-x86_64-linux-bin.tar.gz
 ```
 
 A corresponding modulefile will be automatically created.
