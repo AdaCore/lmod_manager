@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# pylint: disable=missing-docstring
 
 """
-This tool manages the lmod config for GNAT Pro and SPARK Pro.
+Manage Lmod modulefiles for various AdaCore software.
 
 Prerequisites: Write access to installation directory (e.g., /opt/sparkpro) and lmod config
 directory (e.g., /etc/lmod/modules/sparkpro or ~/.config/lmod/modulefiles/sparkpro)
@@ -14,7 +13,7 @@ import sys
 from enum import Enum, auto
 from pathlib import Path
 from subprocess import call
-from typing import NoReturn, Sequence, Union
+from typing import NoReturn, Union
 
 DEFAULT_LMOD_MODULES_DIR = "/etc/lmod/modules"
 DEFAULT_INSTALLATION_DIR = "/opt"
@@ -25,7 +24,7 @@ class Type(Enum):
     SPARK = auto()
 
 
-def main(argv: Sequence[str]) -> Union[int, str]:
+def main() -> Union[int, str]:
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(dest="subcommand")
@@ -55,13 +54,13 @@ def main(argv: Sequence[str]) -> Union[int, str]:
     )
     parser_install.set_defaults(func=install)
 
-    args = parser.parse_args(argv[1:])
+    args = parser.parse_args(sys.argv[1:])
 
     if not args.subcommand:
         parser.print_usage()
         return 2
 
-    return args.func(args)
+    return args.func(args)  # type: ignore[no-any-return]
 
 
 def install(args: argparse.Namespace) -> Union[int, str]:
@@ -109,13 +108,10 @@ def install(args: argparse.Namespace) -> Union[int, str]:
         extracted_archive_dir = f"gnatpro-{version}-{target}-{linux}-bin"
         installation_cmd = f"cd {extracted_archive_dir} && ./doinstall {installation_dir}"
     else:
-        assert_never(archive_type)
+        assert_never(archive_type)  # pragma: no cover
 
     call(f"tar xzf {args.archive}", shell=True)
-    call(
-        installation_cmd,
-        shell=True,
-    )
+    call(installation_cmd, shell=True)
     call(f"rm -rf {extracted_archive_dir}", shell=True)
 
     with open(config_file, "w", encoding="utf-8") as f:
@@ -132,7 +128,3 @@ prepend_path("PATH", pkg)
 
 def assert_never(value: NoReturn) -> NoReturn:
     assert False, f"Unhandled value: {value} ({type(value).__name__})"
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))

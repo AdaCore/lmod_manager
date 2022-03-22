@@ -1,0 +1,11 @@
+#!/bin/sh
+
+NAME=$1
+TEMPLATE_DIR=$PWD/tests/templates
+TMP_DIR=$(mktemp -d)
+
+trap 'rm -r -- "$TMP_DIR"' EXIT
+
+mkdir $TMP_DIR/$NAME
+cp tests/templates/* $TMP_DIR/$NAME
+tar -C $TMP_DIR -czf tests/data/$NAME.tar.gz $NAME
