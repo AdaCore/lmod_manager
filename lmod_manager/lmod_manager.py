@@ -23,6 +23,7 @@ DEFAULT_INSTALLATION_DIR = "/opt"
 class Type(Enum):
     GNAT = auto()
     SPARK = auto()
+    CODEPEER = auto()
 
 
 def main() -> Union[int, str]:
@@ -92,6 +93,10 @@ def install(args: argparse.Namespace) -> Union[int, str]:
         archive_type = Type.GNAT
         archive_regex = r"gnatpro-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
         name = "gnatpro"
+    elif "codepeer" in args.archive.name:
+        archive_type = Type.CODEPEER
+        archive_regex = r"codepeer-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
+        name = "codpeer"
     else:
         return "unexpected archive type"
 
@@ -117,6 +122,9 @@ def install(args: argparse.Namespace) -> Union[int, str]:
         installation_cmd = f"echo '{installation_dir}' | {extracted_archive_dir}/doinstall"
     elif archive_type is Type.GNAT:
         extracted_archive_dir = f"gnatpro-{version}-{target}-{linux}-bin"
+        installation_cmd = f"cd {extracted_archive_dir} && ./doinstall {installation_dir}"
+    elif archive_type is Type.CODEPEER:
+        extracted_archive_dir = f"codepeer-{version}-{target}-{linux}-bin"
         installation_cmd = f"cd {extracted_archive_dir} && ./doinstall {installation_dir}"
     else:
         assert_never(archive_type)  # pragma: no cover
@@ -181,6 +189,8 @@ def _module_type(name: str) -> Type:
         return Type.GNAT
     if name == "sparkpro":
         return Type.SPARK
+    if name == "codepeer":
+        return Type.CODEPEER
     raise ValueError
 
 
@@ -193,6 +203,8 @@ def _installation_file(module_type: Type) -> Path:
         return Path("bin/gnat")
     if module_type is Type.SPARK:
         return Path("bin/gnatprove")
+    if module_type is Type.CODEPEER:
+        return Path("bin/codepeer")
     assert_never(module_type)  # pragma: no cover
 
 

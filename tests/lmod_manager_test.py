@@ -144,6 +144,16 @@ def test_install_unexpected_file_name(monkeypatch: MonkeyPatch, tmp_path: Path) 
             "gnatpro-riscv64-elf",
             "23.0w-20220202",
         ),
+        (
+            "codepeer-22.1-x86_64-linux-bin.tar.gz",
+            "codepeer",
+            "22.1",
+        ),
+        (
+            "codepeer-23.0w-20220202-x86_64-linux-bin.tar.gz",
+            "codepeer",
+            "23.0w-20220202",
+        ),
     ],
 )
 def test_install_and_uninstall(
@@ -174,6 +184,10 @@ def test_install_and_uninstall(
         file = "bin/gnat"
     elif name.startswith("spark"):
         file = "bin/gnatprove"
+    elif name.startswith("codepeer"):
+        file = "bin/codepeer"
+    else:
+        assert False
     (install_dir / name / version / file).mkdir(parents=True)
 
     monkeypatch.setattr(
