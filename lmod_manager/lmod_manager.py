@@ -85,27 +85,19 @@ def install(args: argparse.Namespace) -> Union[int, str]:
     if not args.archive.is_file():
         return f'file "{args.archive}" not found'
 
-    if "spark-pro" in args.archive.name:
-        archive_type = Type.SPARK
-        archive_regex = r"spark-pro-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
-        name = "sparkpro"
-    elif "gnatpro" in args.archive.name:
-        archive_type = Type.GNAT
-        archive_regex = r"gnatpro-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
-        name = "gnatpro"
-    elif "codepeer" in args.archive.name:
-        archive_type = Type.CODEPEER
-        archive_regex = r"codepeer-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
-        name = "codpeer"
-    else:
+    try:
+        archive_type = _archive_type(args.archive.name)
+    except ValueError:
         return "unexpected archive type"
 
-    match = re.match(archive_regex, args.archive.name)
+    match = re.match(_archive_regex(archive_type), args.archive.name)
     if not match:
         return "unexpected file name"
     version = match.group(1)
     target = match.group(2)
     linux = match.group(3)
+
+    name = _module_name(archive_type)
 
     if target != "x86_64":
         name = f"{name}-{target}"
@@ -116,22 +108,11 @@ def install(args: argparse.Namespace) -> Union[int, str]:
     config_dir.mkdir(exist_ok=True)
     config_file = _config_file(args.lmod_modules_dir, name, version)
     config_file.touch()
+    extracted_archive_dir = _extracted_archive_dir(archive_type, version, target, linux)
 
-    if archive_type is Type.SPARK:
-        extracted_archive_dir = f"spark-pro-{version}-{target}-{linux}-bin"
-        installation_cmd = f"echo '{installation_dir}' | {extracted_archive_dir}/doinstall"
-    elif archive_type is Type.GNAT:
-        extracted_archive_dir = f"gnatpro-{version}-{target}-{linux}-bin"
-        installation_cmd = f"cd {extracted_archive_dir} && ./doinstall {installation_dir}"
-    elif archive_type is Type.CODEPEER:
-        extracted_archive_dir = f"codepeer-{version}-{target}-{linux}-bin"
-        installation_cmd = f"cd {extracted_archive_dir} && ./doinstall {installation_dir}"
-    else:
-        assert_never(archive_type)  # pragma: no cover
-
-    call(f"tar xzf {args.archive}", shell=True)
-    call(installation_cmd, shell=True)
-    call(f"rm -rf {extracted_archive_dir}", shell=True)
+    shutil.unpack_archive(args.archive, format="gztar")
+    _install_archive(archive_type, installation_dir, extracted_archive_dir)
+    shutil.rmtree(extracted_archive_dir)
 
     with open(config_file, "w", encoding="utf-8") as f:
         f.write(
@@ -184,6 +165,26 @@ def assert_never(value: NoReturn) -> NoReturn:
     assert False, f"Unhandled value: {value} ({type(value).__name__})"
 
 
+def _archive_type(name: str) -> Type:
+    if name.startswith("gnatpro"):
+        return Type.GNAT
+    if name.startswith("spark-pro"):
+        return Type.SPARK
+    if name.startswith("codepeer"):
+        return Type.CODEPEER
+    raise ValueError
+
+
+def _archive_name(module_type: Type) -> str:
+    if module_type is Type.GNAT:
+        return "gnatpro"
+    if module_type is Type.SPARK:
+        return "spark-pro"
+    if module_type is Type.CODEPEER:
+        return "codepeer"
+    assert_never(module_type)  # pragma: no cover
+
+
 def _module_type(name: str) -> Type:
     if name == "gnatpro":
         return Type.GNAT
@@ -192,6 +193,39 @@ def _module_type(name: str) -> Type:
     if name == "codepeer":
         return Type.CODEPEER
     raise ValueError
+
+
+def _module_name(module_type: Type) -> str:
+    if module_type is Type.GNAT:
+        return "gnatpro"
+    if module_type is Type.SPARK:
+        return "sparkpro"
+    if module_type is Type.CODEPEER:
+        return "codepeer"
+    assert_never(module_type)  # pragma: no cover
+
+
+def _archive_regex(archive_type: Type) -> str:
+    archive_name = _archive_name(archive_type)
+    return rf"{archive_name}-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
+
+
+def _extracted_archive_dir(archive_type: Type, version: str, target: str, linux: str) -> Path:
+    archive_name = _archive_name(archive_type)
+    return Path(f"{archive_name}-{version}-{target}-{linux}-bin")
+
+
+def _install_archive(
+    archive_type: Type, installation_dir: Path, extracted_archive_dir: Path
+) -> None:
+    if archive_type is Type.GNAT:
+        call(f"cd {extracted_archive_dir} && ./doinstall {installation_dir}", shell=True)
+    elif archive_type is Type.SPARK:
+        call(f"echo '{installation_dir}' | {extracted_archive_dir}/doinstall", shell=True)
+    elif archive_type is Type.CODEPEER:
+        call(f"cd {extracted_archive_dir} && ./doinstall {installation_dir}", shell=True)
+    else:
+        assert_never(archive_type)  # pragma: no cover
 
 
 def _installation_dir(prefix: Path, name: str, version: str) -> Path:
