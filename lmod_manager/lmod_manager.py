@@ -7,23 +7,197 @@ Prerequisites: Write access to installation directory (e.g., /opt/sparkpro) and 
 directory (e.g., /etc/lmod/modules/sparkpro or ~/.config/lmod/modulefiles/sparkpro)
 """
 
+from __future__ import annotations
+
 import argparse
 import re
 import shutil
 import sys
-from enum import Enum, auto
+from abc import abstractmethod
 from pathlib import Path
 from subprocess import call
-from typing import NoReturn, Union
+from typing import Union
 
 DEFAULT_LMOD_MODULES_DIR = "/etc/lmod/modules"
 DEFAULT_INSTALLATION_DIR = "/opt"
 
 
-class Type(Enum):
-    GNAT = auto()
-    SPARK = auto()
-    CODEPEER = auto()
+class Error(Exception):
+    pass
+
+
+class Tool:
+    def __init__(self, archive: Path = None, module_name: str = None) -> None:
+        assert (archive and not module_name) or (not archive and module_name)
+
+        if archive:
+            match = re.match(
+                rf"{self.archive_name()}-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz",
+                archive.name,
+            )
+
+            if not match:
+                raise Error("unexpected archive name format")
+
+            self._archive = archive
+            self._version = match.group(1)
+            self._target = match.group(2)
+            self._linux = match.group(3)
+
+        if module_name:
+            match = re.match(rf"{self.name()}((?:-[^/]*)?)/([\d.w]*(?:-\d*)?)", module_name)
+
+            if not match:
+                raise Error("unexpected module name format")
+
+            self._target = match.group(1)[1:]
+            self._version = match.group(2)
+
+    @staticmethod
+    def from_archive(archive: Path) -> Tool:
+        if archive.name.startswith(Gnat.archive_name()):
+            return Gnat(archive)
+        if archive.name.startswith(Spark.archive_name()):
+            return Spark(archive)
+        if archive.name.startswith(CodePeer.archive_name()):
+            return CodePeer(archive)
+        raise Error("unexpected archive type")
+
+    @staticmethod
+    def from_module(module_name: str) -> Tool:
+        if module_name.startswith(Gnat.name()):
+            return Gnat(module_name=module_name)
+        if module_name.startswith(Spark.name()):
+            return Spark(module_name=module_name)
+        if module_name.startswith(CodePeer.name()):
+            return CodePeer(module_name=module_name)
+        raise Error("unexpected module type")
+
+    @staticmethod
+    @abstractmethod
+    def name() -> str:
+        raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def archive_name() -> str:
+        raise NotImplementedError
+
+    @property
+    def module_name(self) -> str:
+        if self._target and self._target != "x86_64":
+            return f"{self.name()}-{self._target}"
+        return self.name()
+
+    def install(self, installation_dir: Path, lmod_modules_dir: Path) -> None:
+        installation_dir = self._installation_dir(installation_dir)
+        installation_dir.parent.mkdir(exist_ok=True)
+        config_dir = self._config_dir(lmod_modules_dir)
+        config_dir.mkdir(exist_ok=True)
+        config_file = self._config_file(lmod_modules_dir)
+        config_file.touch()
+
+        shutil.unpack_archive(self._archive, format="gztar")
+        self._install_archive(installation_dir)
+        shutil.rmtree(self._extracted_archive_dir())
+
+        with open(config_file, "w", encoding="utf-8") as f:
+            f.write(
+                f"""\
+local pkgName = myModuleName()
+local version = myModuleVersion()
+local pkg     = pathJoin("{installation_dir}",pkgName,version,"bin")
+prepend_path("PATH", pkg)
+"""
+            )
+
+    def uninstall(self, installation_dir: Path, lmod_modules_dir: Path) -> None:
+        installation_dir = self._installation_dir(installation_dir)
+
+        if not installation_dir.exists():
+            raise Error(f"installation directory '{installation_dir}' not found")
+        if not (installation_dir / self._installation_file()).exists():
+            raise Error(f"directory '{installation_dir}' seems not to contain a valid installation")
+
+        config_file = self._config_file(lmod_modules_dir)
+
+        if not config_file.exists():
+            raise Error(f"config file '{config_file}' not found")
+
+        shutil.rmtree(installation_dir)
+        config_file.unlink()
+
+    def _config_dir(self, prefix: Path) -> Path:
+        return prefix / self.module_name
+
+    def _config_file(self, prefix: Path) -> Path:
+        return prefix / self.module_name / f"{self._version}.lua"
+
+    def _installation_dir(self, prefix: Path) -> Path:
+        return prefix / self.module_name / self._version
+
+    def _extracted_archive_dir(self) -> Path:
+        return Path(f"{self.archive_name()}-{self._version}-{self._target}-{self._linux}-bin")
+
+    @staticmethod
+    @abstractmethod
+    def _installation_file() -> Path:
+        raise NotImplementedError
+
+    @abstractmethod
+    def _install_archive(self, installation_dir: Path) -> None:
+        raise NotImplementedError
+
+
+class Gnat(Tool):
+    @staticmethod
+    def name() -> str:
+        return "gnatpro"
+
+    @staticmethod
+    def archive_name() -> str:
+        return "gnatpro"
+
+    @staticmethod
+    def _installation_file() -> Path:
+        return Path("bin/gnat")
+
+    def _install_archive(self, installation_dir: Path) -> None:
+        call(f"cd {self._extracted_archive_dir()} && ./doinstall {installation_dir}", shell=True)
+
+
+class Spark(Tool):
+    @staticmethod
+    def name() -> str:
+        return "sparkpro"
+
+    @staticmethod
+    def archive_name() -> str:
+        return "spark-pro"
+
+    @staticmethod
+    def _installation_file() -> Path:
+        return Path("bin/gnatprove")
+
+    def _install_archive(self, installation_dir: Path) -> None:
+        call(f"echo '{installation_dir}' | {self._extracted_archive_dir()}/doinstall", shell=True)
+
+
+class CodePeer(Tool):
+    @staticmethod
+    def name() -> str:
+        return "codepeer"
+
+    @staticmethod
+    def archive_name() -> str:
+        return "codepeer"
+
+    @staticmethod
+    def _installation_file() -> Path:
+        return Path("bin/codepeer")
+
+    def _install_archive(self, installation_dir: Path) -> None:
+        call(f"cd {self._extracted_archive_dir()} && ./doinstall {installation_dir}", shell=True)
 
 
 def main() -> Union[int, str]:
@@ -86,165 +260,17 @@ def install(args: argparse.Namespace) -> Union[int, str]:
         return f'file "{args.archive}" not found'
 
     try:
-        archive_type = _archive_type(args.archive.name)
-    except ValueError:
-        return "unexpected archive type"
-
-    match = re.match(_archive_regex(archive_type), args.archive.name)
-    if not match:
-        return "unexpected file name"
-    version = match.group(1)
-    target = match.group(2)
-    linux = match.group(3)
-
-    name = _module_name(archive_type)
-
-    if target != "x86_64":
-        name = f"{name}-{target}"
-
-    installation_dir = _installation_dir(args.installation_dir, name, version)
-    installation_dir.parent.mkdir(exist_ok=True)
-    config_dir = _config_dir(args.lmod_modules_dir, name)
-    config_dir.mkdir(exist_ok=True)
-    config_file = _config_file(args.lmod_modules_dir, name, version)
-    config_file.touch()
-    extracted_archive_dir = _extracted_archive_dir(archive_type, version, target, linux)
-
-    shutil.unpack_archive(args.archive, format="gztar")
-    _install_archive(archive_type, installation_dir, extracted_archive_dir)
-    shutil.rmtree(extracted_archive_dir)
-
-    with open(config_file, "w", encoding="utf-8") as f:
-        f.write(
-            f"""local pkgName = myModuleName()
-local version = myModuleVersion()
-local pkg     = pathJoin("{args.installation_dir}",pkgName,version,"bin")
-prepend_path("PATH", pkg)
-"""
-        )
+        Tool.from_archive(args.archive).install(args.installation_dir, args.lmod_modules_dir)
+    except Error as e:
+        return str(e)
 
     return 0
 
 
 def uninstall(args: argparse.Namespace) -> Union[int, str]:
-    match = re.match(r"([^/-]*)((?:-[^/]*)?)/([\d.w]*(?:-\d*)?)", args.module)
-    if not match:
-        return "unexpected module name format"
-
-    name = match.group(1)
-    target = match.group(2)[1:]
-    version = match.group(3)
-
     try:
-        module_type = _module_type(name)
-    except ValueError:
-        return f"unexpected type '{name}'"
-
-    if target:
-        name = f"{name}-{target}"
-
-    installation_dir = _installation_dir(args.installation_dir, name, version)
-
-    if not installation_dir.exists():
-        return f"installation directory '{installation_dir}' not found"
-    if not (installation_dir / _installation_file(module_type)).exists():
-        return f"directory '{installation_dir}' seems not to contain a valid installation"
-
-    config_file = _config_file(args.lmod_modules_dir, name, version)
-
-    if not config_file.exists():
-        return f"config file '{config_file}' not found"
-
-    shutil.rmtree(installation_dir)
-    config_file.unlink()
+        Tool.from_module(args.module).uninstall(args.installation_dir, args.lmod_modules_dir)
+    except Error as e:
+        return str(e)
 
     return 0
-
-
-def assert_never(value: NoReturn) -> NoReturn:
-    assert False, f"Unhandled value: {value} ({type(value).__name__})"
-
-
-def _archive_type(name: str) -> Type:
-    if name.startswith("gnatpro"):
-        return Type.GNAT
-    if name.startswith("spark-pro"):
-        return Type.SPARK
-    if name.startswith("codepeer"):
-        return Type.CODEPEER
-    raise ValueError
-
-
-def _archive_name(module_type: Type) -> str:
-    if module_type is Type.GNAT:
-        return "gnatpro"
-    if module_type is Type.SPARK:
-        return "spark-pro"
-    if module_type is Type.CODEPEER:
-        return "codepeer"
-    assert_never(module_type)  # pragma: no cover
-
-
-def _module_type(name: str) -> Type:
-    if name == "gnatpro":
-        return Type.GNAT
-    if name == "sparkpro":
-        return Type.SPARK
-    if name == "codepeer":
-        return Type.CODEPEER
-    raise ValueError
-
-
-def _module_name(module_type: Type) -> str:
-    if module_type is Type.GNAT:
-        return "gnatpro"
-    if module_type is Type.SPARK:
-        return "sparkpro"
-    if module_type is Type.CODEPEER:
-        return "codepeer"
-    assert_never(module_type)  # pragma: no cover
-
-
-def _archive_regex(archive_type: Type) -> str:
-    archive_name = _archive_name(archive_type)
-    return rf"{archive_name}-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz"
-
-
-def _extracted_archive_dir(archive_type: Type, version: str, target: str, linux: str) -> Path:
-    archive_name = _archive_name(archive_type)
-    return Path(f"{archive_name}-{version}-{target}-{linux}-bin")
-
-
-def _install_archive(
-    archive_type: Type, installation_dir: Path, extracted_archive_dir: Path
-) -> None:
-    if archive_type is Type.GNAT:
-        call(f"cd {extracted_archive_dir} && ./doinstall {installation_dir}", shell=True)
-    elif archive_type is Type.SPARK:
-        call(f"echo '{installation_dir}' | {extracted_archive_dir}/doinstall", shell=True)
-    elif archive_type is Type.CODEPEER:
-        call(f"cd {extracted_archive_dir} && ./doinstall {installation_dir}", shell=True)
-    else:
-        assert_never(archive_type)  # pragma: no cover
-
-
-def _installation_dir(prefix: Path, name: str, version: str) -> Path:
-    return prefix / name / version
-
-
-def _installation_file(module_type: Type) -> Path:
-    if module_type is Type.GNAT:
-        return Path("bin/gnat")
-    if module_type is Type.SPARK:
-        return Path("bin/gnatprove")
-    if module_type is Type.CODEPEER:
-        return Path("bin/codepeer")
-    assert_never(module_type)  # pragma: no cover
-
-
-def _config_dir(prefix: Path, name: str) -> Path:
-    return prefix / name
-
-
-def _config_file(prefix: Path, name: str, version: str) -> Path:
-    return prefix / name / f"{version}.lua"
