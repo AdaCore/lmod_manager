@@ -92,7 +92,7 @@ def test_install_unexpected_archive_type(monkeypatch: MonkeyPatch, tmp_path: Pat
     assert main() == "unexpected archive type"
 
 
-def test_install_unexpected_file_name(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+def test_install_unexpected_archive_name_format(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     archive = tmp_path / "spark-pro-22.1.tar.gz"
     archive.touch()
     monkeypatch.setattr(
@@ -108,7 +108,7 @@ def test_install_unexpected_file_name(monkeypatch: MonkeyPatch, tmp_path: Path) 
             str(archive),
         ],
     )
-    assert main() == "unexpected file name"
+    assert main() == "unexpected archive name format"
 
 
 @pytest.mark.parametrize(
@@ -210,24 +210,7 @@ def test_install_and_uninstall(
     assert not (install_dir / name / version).exists()
 
 
-def test_uninstall_unexpected_module_name_format(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "",
-            "-l",
-            str(tmp_path),
-            "-i",
-            str(tmp_path),
-            "uninstall",
-            "invalid",
-        ],
-    )
-    assert main() == "unexpected module name format"
-
-
-def test_uninstall_unexpected_type(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+def test_uninstall_unexpected_module_type(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(
         sys,
         "argv",
@@ -241,7 +224,24 @@ def test_uninstall_unexpected_type(monkeypatch: MonkeyPatch, tmp_path: Path) -> 
             "invalid/1",
         ],
     )
-    assert main() == "unexpected type 'invalid'"
+    assert main() == "unexpected module type"
+
+
+def test_uninstall_unexpected_module_name_format(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "",
+            "-l",
+            str(tmp_path),
+            "-i",
+            str(tmp_path),
+            "uninstall",
+            "sparkpro#invalid",
+        ],
+    )
+    assert main() == "unexpected module name format"
 
 
 def test_uninstall_installation_directory_not_found(
