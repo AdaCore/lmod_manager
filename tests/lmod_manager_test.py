@@ -161,6 +161,7 @@ def test_install_and_uninstall(
 ) -> None:
     lmod_dir = tmp_path / "lmod"
     lmod_dir.mkdir()
+    lmod_file = lmod_dir / name / f"{version}.lua"
     install_dir = tmp_path / "install"
     install_dir.mkdir()
     monkeypatch.setattr(
@@ -177,8 +178,15 @@ def test_install_and_uninstall(
         ],
     )
     assert main() == 0
-    assert (lmod_dir / name / f"{version}.lua").is_file()
+    assert lmod_file.is_file()
     assert (install_dir / name / version / "done").is_file()
+
+    lmod_file_lines = lmod_file.read_text().split("\n")
+
+    assert any(str(install_dir) in l for l in lmod_file_lines)
+
+    for l in lmod_file_lines:
+        assert not l.startswith(" ")
 
     if name.startswith("gnat"):
         file = "bin/gnat"

@@ -13,6 +13,7 @@ import argparse
 import re
 import shutil
 import sys
+import textwrap
 from abc import abstractmethod
 from pathlib import Path
 from subprocess import call
@@ -103,12 +104,14 @@ class Tool:
 
         with open(config_file, "w", encoding="utf-8") as f:
             f.write(
-                f"""\
-local pkgName = myModuleName()
-local version = myModuleVersion()
-local pkg     = pathJoin("{installation_dir}",pkgName,version,"bin")
-prepend_path("PATH", pkg)
-"""
+                textwrap.dedent(
+                    f"""\
+                    local pkgName = myModuleName()
+                    local version = myModuleVersion()
+                    local pkg     = pathJoin("{installation_dir}",pkgName,version,"bin")
+                    prepend_path("PATH", pkg)
+                    """
+                )
             )
 
     def uninstall(self, installation_dir: Path, lmod_modules_dir: Path) -> None:
