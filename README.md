@@ -39,7 +39,7 @@ See the [User Guide for Lmod](https://lmod.readthedocs.io/en/latest/010_user.htm
 
 ## Requirements
 
-- [Python](https://www.python.org/) 3.7+
+- [Python](https://www.python.org/) 3.8+
 - [Lmod](https://github.com/TACC/Lmod)
 
 ## Limitations
