@@ -183,7 +183,7 @@ def test_install_and_uninstall(
 
     lmod_file_lines = lmod_file.read_text().split("\n")
 
-    assert any(str(install_dir) in l for l in lmod_file_lines)
+    assert any(f'"{install_dir}"' in l for l in lmod_file_lines)
 
     for l in lmod_file_lines:
         assert not l.startswith(" ")
