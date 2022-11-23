@@ -91,15 +91,15 @@ class Tool:
         return self.name()
 
     def install(self, installation_dir: Path, lmod_modules_dir: Path) -> None:
-        installation_dir = self._installation_dir(installation_dir)
-        installation_dir.parent.mkdir(exist_ok=True)
+        full_installation_dir = self._installation_dir(installation_dir)
+        full_installation_dir.parent.mkdir(exist_ok=True)
         config_dir = self._config_dir(lmod_modules_dir)
         config_dir.mkdir(exist_ok=True)
         config_file = self._config_file(lmod_modules_dir)
         config_file.touch()
 
         shutil.unpack_archive(self._archive, format="gztar")
-        self._install_archive(installation_dir)
+        self._install_archive(full_installation_dir)
         shutil.rmtree(self._extracted_archive_dir())
 
         with open(config_file, "w", encoding="utf-8") as f:
