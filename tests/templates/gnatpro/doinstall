@@ -1,0 +1,349 @@
+#! /bin/sh
+#
+# GNAT binary distribution installation script
+# Copyright (c) 2003-2021, Free Software Foundation
+#
+
+####################
+#                  #
+# Global variables #
+#                  #
+####################
+
+basever=10.3.1
+machine=x86_64-pc-linux-gnu
+gnatver=22.2
+
+prefix="/usr/gnat"
+if [ "$TMPDIR" = "" ]; then
+  TMPDIR=/tmp
+fi
+tmpout="${TMPDIR}/install.log.$$"
+tmpvalue="${TMPDIR}/install.$$"
+doinstall_dir=`dirname $0`
+
+#####################################################
+#                                                   #
+# Says that a given command was not found and exits #
+#                                                   #
+#####################################################
+
+command_not_found () {
+    cmd="$1"
+    cat << EOF
+
+The $cmd command could not be found on your PATH. You must have
+it on your PATH in order to successfully install $long_qualifier. Please
+add the directory where $cmd can be found to your PATH or contact your
+system administrator to have it installed in a standard location.
+
+
+EOF
+    exit 1
+}
+
+##########################
+#                        #
+# Checks the environment #
+#                        #
+##########################
+
+check_env () {
+
+    # type returns 0 on success, >0 on failure
+    for cmd in make tee cat clear; do
+        type_out=`type $cmd 2>&1`
+        type_rv=$?
+        if [ $type_rv -ne 0 ]; then
+            command_not_found $cmd
+        fi
+    done
+
+    # let the Makefile do additional checks
+    # on the environment
+    make -s check-env || exit 1
+}
+
+################################
+#                              #
+# Adds the correct description #
+#                              #
+################################
+
+set_qualifier () {
+    # Note: $qualifier and $long_qualifier are used in message substitutions.
+    # Specific tests for specific values of $qualifier are also used, so
+    # be careful to review these if changing the value of that variable.
+    case $gnatver in
+    *w|*rc*|[0-9][0-9].[0-9]*)
+        qualifier="Pro"
+        long_qualifier="GNAT Pro"
+        ;;
+    [0-9][0-9][0-9][0-9]*)
+        qualifier="GPL"
+        long_qualifier="GNAT GPL Edition"
+        ;;
+    esac
+}
+
+###########################################
+#                                         #
+# Ask for the base installation directory #
+#                                         #
+###########################################
+
+ask_base_prefix() {
+
+   cat << EOF
+
+    In which directory do you want to install GNAT? [$prefix]:
+EOF
+    read ans_prefix
+
+    if [ "$ans_prefix" != "" ]; then
+        prefix="$ans_prefix"
+    fi
+}
+
+#######################################
+#                                     #
+# Install GNAT to a standard location #
+#                                     #
+#######################################
+
+standard_installation () {
+
+   # Makes the real installation
+   mkdir -p $prefix
+   touch $prefix/done
+
+   # Check that installation was OK
+
+   error_exit=false
+
+   if [ ! -f "$tmpout" ]; then
+      error_exit=true
+      cat << EOF
+
+
+   An error occurred during installation. The installation log file,
+   $tmpout, could not be written.
+EOF
+
+   elif [ ! -f "$tmpvalue" -o `cat "$tmpvalue"` -ne 0 ]; then
+      error_exit=true
+      cat << EOF
+
+
+   An error occurred during installation. You can find a complete log
+   of the installation in $tmpout.
+EOF
+   fi
+
+   if $error_exit; then
+      case "$qualifier" in
+        Pro)
+          cat << EOF
+   Don't hesitate to send a message to report@adacore.com with a
+   meaningful subject line including your customer number ("#xxx")
+   if you have any question about this installation process.
+
+EOF
+          ;;
+        GPL)
+      cat << EOF
+   Don't hesitate to send a message to report@adacore.com with a
+   meaningful subject line including the keyword "GNAT" if you have
+   any question about this installation process.
+
+EOF
+        ;;
+      esac
+      exit 1
+   fi
+
+   rm -f "$tmpvalue"
+
+   if [ "$qualifier" = "GPL" ]; then
+      case "$machine" in
+         x86_64-pc-linux-gnu|i686-pc-linux-gnu)
+            gnat_ld="$prefix/libexec/gcc/$machine/$basever/ld"
+            sys_ld="/usr/bin/ld"
+            gnat_ver=`$gnat_ld -v | sed -n -e "s/GNU ld.* \([1-9]\)\.\([0-9]*\).*/\1 \2/p"`
+            sys_ver=`$sys_ld -v 2>/dev/null | sed -n -e "s/GNU ld.* \([1-9]\)\.\([0-9]*\).*/\1 \2/p"`
+            gnat_ver=`printf "%d%04d" $gnat_ver 2>/dev/null`
+            sys_ver=`printf "%d%04d" $sys_ver 2>/dev/null`
+
+            if [ "$sys_ver" -gt "$gnat_ver" ] 2>/dev/null; then
+               mv $gnat_ld $gnat_ld.orig
+            fi
+            ;;
+      esac
+   fi
+
+   cat << EOF
+
+
+   GNAT $qualifier is now installed. To launch it, you must put
+      $prefix/bin
+   in front of your PATH environment variable. The following
+   commands enable you to do this:
+      PATH="$prefix/bin:\$PATH"; export PATH  (Bourne shell)
+      setenv PATH "$prefix/bin:\$PATH"        (C shell)
+   Thank you for installing $long_qualifier!
+
+EOF
+}
+
+######################
+#                    #
+# Start installation #
+#                    #
+######################
+
+set_qualifier
+
+# This avoids some problems when cd prints the new directory when CDPATH
+# is defined
+unset CDPATH
+
+# If a directory is specified, run attended
+
+if [ $# -eq 1 ]; then
+  if [ "$1" = "--help" ]; then
+    cat << EOF
+   Usage: $0 [install_dir]
+
+   When no argument is specified, runs the $long_qualifier installer
+   interactively, otherwise installs automatically under install_dir.
+EOF
+  else
+    echo "installing $long_qualifier under $1"
+    prefix="$1"
+    cd $doinstall_dir && standard_installation
+  fi
+  exit 0
+fi
+
+# Otherwise perform interactive install
+
+clear
+cat << EOF
+
+
+   This script is provided to simplify the installation of the $machine
+   binary version of the $long_qualifier environment maintained by AdaCore.
+   For information on commercial support please contact sales@adacore.com.
+
+   This script will ask you how you would like to configure GNAT.
+   Confirmation is required before any write action is taken.
+
+   Please press RETURN to continue.
+
+EOF
+
+read dummy
+
+# Ask information for non-standard installation
+confirm="KO"
+curdir=`pwd`
+while [ "$confirm" != "OK" ]; do
+
+    # Ask the base directory for installation
+    clear
+    cat << EOF
+
+
+    To install GNAT, you need to specify a base directory.
+    All the files will be installed in subdirectories
+    that are created under this directory.
+
+    Important Note: You should not use ~ or ~username wildcards
+    when specifying this directory name.
+EOF
+    ask_base_prefix
+    while [ "$prefix" = "$curdir" ]; do
+       #target base directory cannot be the same as the current dir
+       cat << EOF
+
+    The target base directory cannot be the current directory.
+    Please enter another directory name.
+EOF
+       ask_base_prefix
+    done
+
+    # Ask confirmation
+    cat << EOF
+
+
+    The $long_qualifier installation directory will be:
+      $prefix
+    Is this correct ? Type 'Y' if so, otherwise type 'N' and you'll
+    be prompted for another directory name.
+
+    Do you want to continue ? [yY|nN]:
+
+EOF
+    read confirm
+    case "$confirm" in
+    [yY])
+        confirm="OK"
+        ;;
+    *)
+        confirm="KO"
+        ;;
+    esac
+done
+
+# Ask confirmation
+clear
+cat << EOF
+
+
+   $long_qualifier is now about to be installed in
+      $prefix.
+   Type 'Y' if you want to proceed with installation or any other key
+   if you wish to abort.
+
+   Do you want to proceed with installation ? [yY|nN]:
+
+EOF
+read proceed
+case "$proceed" in
+[yY]*)
+    ;;
+*)
+    echo "Aborting installation on user request"
+    exit 0
+    ;;
+esac
+
+# Check if there's a former installation of GNAT
+if [ -d "$prefix/lib/gcc-lib/$machine/$basever" -o \
+     -d "$prefix/lib/gcc/$machine/$basever" ]; then
+   clear
+   cat << EOF
+
+
+Some gcc-$basever files were found in
+   $prefix
+If you want to exit the installation process and cleanup this
+directory manually, press 'N'. If you want to proceed with
+installation, press 'Y'.
+
+Do you want to proceed anyway ? [yY|Nn]:
+
+EOF
+   read carryon
+   case "$carryon" in
+   [yY]*)
+       ;;
+   *)
+       echo "  Installation interrupted on user's request"
+       exit 1
+       ;;
+   esac
+fi
+
+# Do the real installation
+cd $doinstall_dir && standard_installation
