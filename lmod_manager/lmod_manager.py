@@ -166,7 +166,11 @@ class Gnat(Tool):
         return Path("bin/gnat")
 
     def _install_archive(self, installation_dir: Path) -> None:
-        call(f"cd {self._extracted_archive_dir()} && ./doinstall {installation_dir}", shell=True)
+        call(
+            f"cd {self._extracted_archive_dir()}"
+            f" && echo -e '\n{installation_dir}\nY\nY\n' | ./doinstall",
+            shell=True,
+        )
 
 
 class Spark(Tool):

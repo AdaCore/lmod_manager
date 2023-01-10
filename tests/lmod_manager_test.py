@@ -125,9 +125,14 @@ def test_install_unexpected_archive_name_format(monkeypatch: MonkeyPatch, tmp_pa
             "23.0w-20220202",
         ),
         (
-            "gnatpro-22.1-x86_64-linux-bin.tar.gz",
+            "gnatpro-20.2-x86_64-linux-bin.tar.gz",
             "gnatpro",
-            "22.1",
+            "20.2",
+        ),
+        (
+            "gnatpro-22.2-x86_64-linux-bin.tar.gz",
+            "gnatpro",
+            "22.2",
         ),
         (
             "gnatpro-23.0w-20220202-x86_64-linux-bin.tar.gz",
