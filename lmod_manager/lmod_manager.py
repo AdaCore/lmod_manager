@@ -15,6 +15,7 @@ import shutil
 import sys
 import textwrap
 from abc import abstractmethod
+from importlib.metadata import version
 from pathlib import Path
 from subprocess import call
 from typing import Optional, Union
@@ -210,6 +211,11 @@ class CodePeer(Tool):
 def main() -> Union[int, str]:
     parser = argparse.ArgumentParser()
 
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=version("lmod_manager"),
+    )
     parser.add_argument(
         "-l",
         metavar="LMOD_MODULES_DIR",
