@@ -17,7 +17,7 @@ import textwrap
 from abc import abstractmethod
 from pathlib import Path
 from subprocess import call
-from typing import Union
+from typing import Optional, Union
 
 DEFAULT_LMOD_MODULES_DIR = "/etc/lmod/modules"
 DEFAULT_INSTALLATION_DIR = "/opt"
@@ -28,7 +28,7 @@ class Error(Exception):
 
 
 class Tool:
-    def __init__(self, archive: Path = None, module_name: str = None) -> None:
+    def __init__(self, archive: Optional[Path] = None, module_name: Optional[str] = None) -> None:
         assert (archive and not module_name) or (not archive and module_name)
 
         if archive:

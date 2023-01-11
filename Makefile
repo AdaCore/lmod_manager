@@ -34,7 +34,7 @@ test:
 	$(PYTEST) --cov=lmod_manager --cov-branch --cov-fail-under=100 --cov-report=term-missing:skip-covered tests
 
 install_devel:
-	$(MAKE) -C .config/python-style install_devel
+	$(MAKE) -C devutils install_devel
 	python3 -m pip install -e .
 
 clean:
