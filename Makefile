@@ -4,10 +4,11 @@ BUILD_DIR := build
 VERSION := $(shell python3 -c "import setuptools_scm; print(setuptools_scm.get_version())")
 WHEEL := dist/lmod_manager-$(VERSION)-py3-none-any.whl
 
-.PHONY: all check check_black check_isort check_flake8 check_pylint check_mypy check_doc format \
-	test install_devel clean
+.PHONY: all
 
 all: check test
+
+.PHONY: check check_black check_isort check_flake8 check_pylint check_mypy check_pydocstyle
 
 check: check_black check_isort check_flake8 check_pylint check_mypy check_pydocstyle
 
@@ -28,6 +29,8 @@ check_mypy:
 
 check_pydocstyle:
 	pydocstyle $(PYTHON_FILES)
+
+.PHONY: format
 
 format:
 	black $(PYTHON_FILES)
@@ -66,6 +69,8 @@ $(WHEEL): $(wildcard lmod_manager/*)
 
 version:
 	@echo $(VERSION)
+
+.PHONY: clean
 
 clean:
 	rm -rf .coverage .hypothesis .mypy_cache .pytest_cache $(BUILD_DIR)
