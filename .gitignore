@@ -3,8 +3,8 @@
 .coverage
 .hypothesis
 .mypy_cache
+.venv*
 \.*.swp
 __pycache__
 dist
 htmlcov
-venv
