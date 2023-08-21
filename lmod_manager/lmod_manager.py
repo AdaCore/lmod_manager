@@ -63,6 +63,8 @@ class Tool:
             return Spark(archive)
         if archive.name.startswith(CodePeer.archive_name()):
             return CodePeer(archive)
+        if archive.name.startswith(GnatStudio.archive_name()):
+            return GnatStudio(archive)
         raise Error("unexpected archive type")
 
     @staticmethod
@@ -73,6 +75,8 @@ class Tool:
             return Spark(module_name=module_name)
         if module_name.startswith(CodePeer.name()):
             return CodePeer(module_name=module_name)
+        if module_name.startswith(GnatStudio.name()):
+            return GnatStudio(module_name=module_name)
         raise Error("unexpected module type")
 
     @staticmethod
@@ -203,6 +207,23 @@ class CodePeer(Tool):
     @staticmethod
     def _installation_file() -> Path:
         return Path("bin/codepeer")
+
+    def _install_archive(self, installation_dir: Path) -> None:
+        call(f"cd {self._extracted_archive_dir()} && ./doinstall {installation_dir}", shell=True)
+
+
+class GnatStudio(Tool):
+    @staticmethod
+    def name() -> str:
+        return "gnatstudio"
+
+    @staticmethod
+    def archive_name() -> str:
+        return "gnatstudio"
+
+    @staticmethod
+    def _installation_file() -> Path:
+        return Path("bin/gnatstudio")
 
     def _install_archive(self, installation_dir: Path) -> None:
         call(f"cd {self._extracted_archive_dir()} && ./doinstall {installation_dir}", shell=True)

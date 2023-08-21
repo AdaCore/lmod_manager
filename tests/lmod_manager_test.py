@@ -159,6 +159,11 @@ def test_install_unexpected_archive_name_format(monkeypatch: MonkeyPatch, tmp_pa
             "codepeer",
             "23.0w-20220202",
         ),
+        (
+            "gnatstudio-23.2-x86_64-linux-bin.tar.gz",
+            "gnatstudio",
+            "23.2",
+        ),
     ],
 )
 def test_install_and_uninstall(
@@ -193,7 +198,9 @@ def test_install_and_uninstall(
     for l in lmod_file_lines:
         assert not l.startswith(" ")
 
-    if name.startswith("gnat"):
+    if name.startswith("gnatstudio"):
+        file = "bin/gnatstudio"
+    elif name.startswith("gnat"):
         file = "bin/gnat"
     elif name.startswith("spark"):
         file = "bin/gnatprove"
