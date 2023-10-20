@@ -260,19 +260,21 @@ def main() -> Union[int, str]:
     parser_install = subparsers.add_parser("install")
     parser_install.set_defaults(func=install)
     parser_install.add_argument(
-        "archive",
+        "archives",
         metavar="ARCHIVE",
         type=Path,
-        help="path to archive (e.g., spark-pro-22.1-x86_64-linux-bin.tar.gz)",
+        nargs="+",
+        help="list of archives (e.g., spark-pro-22.1-x86_64-linux-bin.tar.gz)",
     )
 
     parser_uninstall = subparsers.add_parser("uninstall")
     parser_uninstall.set_defaults(func=uninstall)
     parser_uninstall.add_argument(
-        "module",
+        "modules",
         metavar="MODULE",
         type=str,
-        help="name of module (e.g., sparkpro/22.1)",
+        nargs="+",
+        help="list of modules (e.g., sparkpro/22.1)",
     )
 
     args = parser.parse_args(sys.argv[1:])
@@ -291,21 +293,23 @@ def main() -> Union[int, str]:
 
 
 def install(args: argparse.Namespace) -> Union[int, str]:
-    if not args.archive.is_file():
-        return f'file "{args.archive}" not found'
+    for archive in args.archives:
+        if not archive.is_file():
+            return f'file "{archive}" not found'
 
-    try:
-        Tool.from_archive(args.archive).install(args.installation_dir, args.lmod_modules_dir)
-    except Error as e:
-        return str(e)
+        try:
+            Tool.from_archive(archive).install(args.installation_dir, args.lmod_modules_dir)
+        except Error as e:
+            return str(e)
 
     return 0
 
 
 def uninstall(args: argparse.Namespace) -> Union[int, str]:
-    try:
-        Tool.from_module(args.module).uninstall(args.installation_dir, args.lmod_modules_dir)
-    except Error as e:
-        return str(e)
+    for module in args.modules:
+        try:
+            Tool.from_module(module).uninstall(args.installation_dir, args.lmod_modules_dir)
+        except Error as e:
+            return str(e)
 
     return 0
