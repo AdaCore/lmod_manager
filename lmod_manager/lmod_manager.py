@@ -34,7 +34,8 @@ class Tool:
 
         if archive:
             match = re.match(
-                rf"{self.archive_name()}-([\d.w]*(?:-\d*)?)-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz",
+                rf"{self.archive_name()}-([\d.wrc]*(?:-\d*)?)"
+                rf"-([\w-]*)-(linux(?:64|)?)-bin\.tar\.gz",
                 archive.name,
             )
 
@@ -47,7 +48,7 @@ class Tool:
             self._linux = match.group(3)
 
         if module_name:
-            match = re.match(rf"{self.name()}((?:-[^/]*)?)/([\d.w]*(?:-\d*)?)", module_name)
+            match = re.match(rf"{self.name()}((?:-[^/]*)?)/([\d.wrc]*(?:-\d*)?)", module_name)
 
             if not match:
                 raise Error("unexpected module name format")

@@ -164,6 +164,26 @@ def test_install_unexpected_archive_name_format(monkeypatch: MonkeyPatch, tmp_pa
             "gnatstudio",
             "23.2",
         ),
+        (
+            "gnatpro-23.0w-20220202-aarch64-qnx-linux64-bin.tar.gz",
+            "gnatpro-aarch64-qnx",
+            "23.0w-20220202",
+        ),
+        (
+            "gnatpro-24.1rc-20231020-aarch64-qnx-linux64-bin.tar.gz",
+            "gnatpro-aarch64-qnx",
+            "24.1rc-20231020",
+        ),
+        (
+            "gnatpro-24.1rc-20231020-aarch64-elf-linux64-bin.tar.gz",
+            "gnatpro-aarch64-elf",
+            "24.1rc-20231020",
+        ),
+        (
+            "gnatpro-24.1rc-20231020-x86_64-linux-bin.tar.gz",
+            "gnatpro",
+            "24.1rc-20231020",
+        ),
     ],
 )
 def test_install_and_uninstall(
