@@ -4,7 +4,8 @@
 .hypothesis
 .mypy_cache
 .venv*
+/build
+/dist
+/htmlcov
 \.*.swp
 __pycache__
-dist
-htmlcov
