@@ -66,6 +66,8 @@ class Tool:
             return CodePeer(archive)
         if archive.name.startswith(GnatStudio.archive_name()):
             return GnatStudio(archive)
+        if archive.name.startswith(Rust.archive_name()):
+            return Rust(archive)
         raise Error("unexpected archive type")
 
     @staticmethod
@@ -78,6 +80,8 @@ class Tool:
             return CodePeer(module_name=module_name)
         if module_name.startswith(GnatStudio.name()):
             return GnatStudio(module_name=module_name)
+        if module_name.startswith(Rust.name()):
+            return Rust(module_name=module_name)
         raise Error("unexpected module type")
 
     @staticmethod
@@ -228,6 +232,27 @@ class GnatStudio(Tool):
 
     def _install_archive(self, installation_dir: Path) -> None:
         call(f"cd {self._extracted_archive_dir()} && ./doinstall {installation_dir}", shell=True)
+
+
+class Rust(Tool):
+    @staticmethod
+    def name() -> str:
+        return "rust"
+
+    @staticmethod
+    def archive_name() -> str:
+        return "rust"
+
+    @staticmethod
+    def _installation_file() -> Path:
+        return Path("bin/rustc")
+
+    def _install_archive(self, installation_dir: Path) -> None:
+        call(
+            f"./install --install-dir='{installation_dir}' --force",
+            cwd=self._extracted_archive_dir(),
+            shell=True,
+        )
 
 
 def main() -> Union[int, str]:

@@ -233,6 +233,13 @@ def test_install_unexpected_archive_name_format(monkeypatch: MonkeyPatch, tmp_pa
                 "23.0w-20220202",
             ),
         ],
+        [
+            Archive(
+                "rust-25.0w-20240417-x86_64-linux-bin.tar.gz",
+                "rust",
+                "25.0w-20240417",
+            ),
+        ],
     ],
 )
 def test_install_and_uninstall(
@@ -277,6 +284,8 @@ def test_install_and_uninstall(
             file = "bin/gnatprove"
         elif archive.name.startswith("codepeer"):
             file = "bin/codepeer"
+        elif archive.name.startswith("rust"):
+            file = "bin/rust"
         else:
             assert False
         (install_dir / archive.name / archive.version / file).mkdir(parents=True)
