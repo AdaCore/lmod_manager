@@ -44,4 +44,10 @@ See the [User Guide for Lmod](https://lmod.readthedocs.io/en/latest/010_user.htm
 
 ## Limitations
 
-So far, only GNAT Pro, SPARK Pro and CodePeer are supported.
+The following software is supported:
+
+- GNAT Pro
+- GNAT Pro for Rust
+- GNAT Studio
+- SPARK Pro
+- CodePeer
