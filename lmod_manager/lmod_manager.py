@@ -58,6 +58,8 @@ class Tool:
 
     @staticmethod
     def from_archive(archive: Path) -> Tool:
+        if archive.name.startswith(GnatProRust.archive_name()):
+            return GnatProRust(archive)
         if archive.name.startswith(Gnat.archive_name()):
             return Gnat(archive)
         if archive.name.startswith(Spark.archive_name()):
@@ -72,6 +74,8 @@ class Tool:
 
     @staticmethod
     def from_module(module_name: str) -> Tool:
+        if module_name.startswith(GnatProRust.name()):
+            return GnatProRust(module_name=module_name)
         if module_name.startswith(Gnat.name()):
             return Gnat(module_name=module_name)
         if module_name.startswith(Spark.name()):
@@ -242,6 +246,27 @@ class Rust(Tool):
     @staticmethod
     def archive_name() -> str:
         return "rust"
+
+    @staticmethod
+    def _installation_file() -> Path:
+        return Path("bin/rustc")
+
+    def _install_archive(self, installation_dir: Path) -> None:
+        call(
+            f"./install --install-dir='{installation_dir}' --force",
+            cwd=self._extracted_archive_dir(),
+            shell=True,
+        )
+
+
+class GnatProRust(Tool):
+    @staticmethod
+    def name() -> str:
+        return "gnatpro-rust"
+
+    @staticmethod
+    def archive_name() -> str:
+        return "gnatpro-rust"
 
     @staticmethod
     def _installation_file() -> Path:

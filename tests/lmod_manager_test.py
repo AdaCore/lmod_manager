@@ -240,6 +240,13 @@ def test_install_unexpected_archive_name_format(monkeypatch: MonkeyPatch, tmp_pa
                 "25.0w-20240417",
             ),
         ],
+        [
+            Archive(
+                "gnatpro-rust-25.0w-20240820-x86_64-linux-bin.tar.gz",
+                "gnatpro-rust",
+                "25.0w-20240820",
+            ),
+        ],
     ],
 )
 def test_install_and_uninstall(
