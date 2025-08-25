@@ -10,6 +10,7 @@ directory (e.g., /etc/lmod/modules/sparkpro or ~/.config/lmod/modulefiles/sparkp
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import sys
@@ -20,8 +21,10 @@ from pathlib import Path
 from subprocess import call
 from typing import Optional, Union
 
-DEFAULT_LMOD_MODULES_DIR = "/etc/lmod/modules"
-DEFAULT_INSTALLATION_DIR = "/opt"
+RUN_AS_ROOT = os.geteuid() == 0
+HOME = Path.home()
+DEFAULT_LMOD_MODULES_DIR = Path("/etc/lmod/modules") if RUN_AS_ROOT else HOME / ".config/lmod/modulefiles"
+DEFAULT_INSTALLATION_DIR = Path("/opt") if RUN_AS_ROOT else HOME / ".opt"
 
 
 class Error(Exception):
