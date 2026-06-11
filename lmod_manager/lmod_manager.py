@@ -276,11 +276,18 @@ class GnatProRust(Tool):
         return Path("bin/rustc")
 
     def _install_archive(self, installation_dir: Path) -> None:
-        call(
-            f"./install --install-dir='{installation_dir}' --force",
-            cwd=self._extracted_archive_dir(),
-            shell=True,
-        )
+        if (self._extracted_archive_dir() / "doinstall").is_file():
+            call(
+                f"./doinstall '{installation_dir}'",
+                cwd=self._extracted_archive_dir(),
+                shell=True,
+            )
+        else:
+            call(
+                f"./install --install-dir='{installation_dir}' --force",
+                cwd=self._extracted_archive_dir(),
+                shell=True,
+            )
 
 
 def main() -> Union[int, str]:
